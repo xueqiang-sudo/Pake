@@ -59,11 +59,12 @@ pub fn set_system_tray(
             }
             "show_app" => {
                 if let Some(window) = app.get_webview_window("pake") {
+                    let _ = window.unminimize();
                     let _ = window.show();
+                    let _ = window.set_focus();
                     #[cfg(target_os = "linux")]
                     if _init_fullscreen && !window.is_fullscreen().unwrap_or(false) {
                         let _ = window.set_fullscreen(true);
-                        let _ = window.set_focus();
                     }
                 }
             }
@@ -86,6 +87,7 @@ pub fn set_system_tray(
                         if is_visible {
                             let _ = window.hide();
                         } else {
+                            let _ = window.unminimize();
                             let _ = window.show();
                             let _ = window.set_focus();
                             #[cfg(target_os = "linux")]
@@ -156,6 +158,7 @@ pub fn set_global_shortcut(
                             if is_visible {
                                 let _ = window.hide();
                             } else {
+                                let _ = window.unminimize();
                                 let _ = window.show();
                                 let _ = window.set_focus();
                                 #[cfg(target_os = "linux")]
