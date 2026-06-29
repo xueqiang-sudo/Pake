@@ -485,8 +485,7 @@ export async function mergeConfig(
   }
   // Auto-enable the system tray when hide_on_close is active: without a tray
   // icon the user has no way to restore a hidden window on Windows/Linux.
-  const effectiveHideOnClose =
-    tauriConf.pake.windows[0].hide_on_close ?? true;
+  const effectiveHideOnClose = tauriConf.pake.windows[0].hide_on_close ?? true;
   tauriConf.pake.system_tray[currentPlatform] =
     showSystemTray || effectiveHideOnClose;
 

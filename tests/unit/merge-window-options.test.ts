@@ -58,16 +58,12 @@ describe('buildWindowConfigOverrides', () => {
 
   it('respects explicit hideOnClose=false on any platform', () => {
     expect(
-      buildWindowConfigOverrides(
-        makeOptions({ hideOnClose: false }),
-        'linux',
-      ).hide_on_close,
+      buildWindowConfigOverrides(makeOptions({ hideOnClose: false }), 'linux')
+        .hide_on_close,
     ).toBe(false);
     expect(
-      buildWindowConfigOverrides(
-        makeOptions({ hideOnClose: false }),
-        'win32',
-      ).hide_on_close,
+      buildWindowConfigOverrides(makeOptions({ hideOnClose: false }), 'win32')
+        .hide_on_close,
     ).toBe(false);
   });
 
