@@ -133,7 +133,7 @@ ${green('|_|   \\__,_|_|\\_\\___|  can turn any webpage into a desktop app with 
     .addOption(
       new Option(
         '--hide-on-close [boolean]',
-        'Hide window on close instead of exiting (default: true for macOS, false for others)',
+        'Hide window on close instead of exiting (default: true on all platforms)',
       )
         .default(DEFAULT.hideOnClose)
         .argParser((value) => {

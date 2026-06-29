@@ -1,4 +1,6 @@
-use crate::util::{check_file_or_append, get_download_message_with_lang, show_toast, MessageType};
+use crate::util::{
+    check_file_or_append, get_app_name, get_download_message_with_lang, show_toast, MessageType,
+};
 use std::fs::File;
 use std::io::Write;
 use std::str::FromStr;
@@ -184,9 +186,15 @@ mod win_flash {
 #[command]
 pub fn send_notification(app: AppHandle, params: NotificationParams) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
+
+    // Use the locale-aware app name as the notification title so it shows
+    // "允知智构" on Chinese systems and "Dedalix" elsewhere, regardless of
+    // what title the web page originally supplied.
+    let app_name = get_app_name();
+
     app.notification()
         .builder()
-        .title(&params.title)
+        .title(app_name)
         .body(&params.body)
         .icon(&params.icon)
         .show()

@@ -517,7 +517,7 @@ function needsTemporaryDebForZst(targets) {
  * Keep this function side-effect free.
  */
 function buildWindowConfigOverrides(options, platform = asSupportedPlatform(process.platform)) {
-    const platformHideOnClose = options.hideOnClose ?? platform === 'darwin';
+    const platformHideOnClose = options.hideOnClose ?? true;
     const platformHideTitleBar = platform === 'darwin' ? options.hideTitleBar : false;
     return {
         width: options.width,
@@ -830,7 +830,8 @@ async function mergeConfig(url, options, tauriConf) {
     if (userAgent.length > 0) {
         tauriConf.pake.user_agent[currentPlatform] = userAgent;
     }
-    tauriConf.pake.system_tray[currentPlatform] = showSystemTray;
+    const effectiveHideOnClose = tauriConf.pake.windows[0].hide_on_close ?? true;
+    tauriConf.pake.system_tray[currentPlatform] = showSystemTray || effectiveHideOnClose;
     if (platform === 'linux') {
         await mergeLinuxConfig(options, name, tauriConf, linuxBinaryName);
     }
@@ -2842,7 +2843,7 @@ ${green('|_|   \\__,_|_|\\_\\___|  can turn any webpage into a desktop app with 
         .addOption(new Option('--system-tray-icon <string>', 'Custom system tray icon')
         .default(DEFAULT_PAKE_OPTIONS.systemTrayIcon)
         .hideHelp())
-        .addOption(new Option('--hide-on-close [boolean]', 'Hide window on close instead of exiting (default: true for macOS, false for others)')
+        .addOption(new Option('--hide-on-close [boolean]', 'Hide window on close instead of exiting (default: true on all platforms)')
         .default(DEFAULT_PAKE_OPTIONS.hideOnClose)
         .argParser((value) => {
         if (value === undefined)

@@ -35,24 +35,37 @@ describe('buildWindowConfigOverrides', () => {
     expect(result.hide_on_close).toBe(false);
   });
 
-  it('defaults hideOnClose to true on macOS when undefined', () => {
-    const result = buildWindowConfigOverrides(
-      makeOptions({ hideOnClose: undefined }),
-      'darwin',
-    );
-    expect(result.hide_on_close).toBe(true);
-  });
-
-  it('defaults hideOnClose to false on Linux/Windows when undefined', () => {
+  it('defaults hideOnClose to true on all platforms when undefined', () => {
+    expect(
+      buildWindowConfigOverrides(
+        makeOptions({ hideOnClose: undefined }),
+        'darwin',
+      ).hide_on_close,
+    ).toBe(true);
     expect(
       buildWindowConfigOverrides(
         makeOptions({ hideOnClose: undefined }),
         'linux',
       ).hide_on_close,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       buildWindowConfigOverrides(
         makeOptions({ hideOnClose: undefined }),
+        'win32',
+      ).hide_on_close,
+    ).toBe(true);
+  });
+
+  it('respects explicit hideOnClose=false on any platform', () => {
+    expect(
+      buildWindowConfigOverrides(
+        makeOptions({ hideOnClose: false }),
+        'linux',
+      ).hide_on_close,
+    ).toBe(false);
+    expect(
+      buildWindowConfigOverrides(
+        makeOptions({ hideOnClose: false }),
         'win32',
       ).hide_on_close,
     ).toBe(false);

@@ -30,7 +30,9 @@ export function buildWindowConfigOverrides(
   options: PakeAppOptions,
   platform: SupportedPlatform = asSupportedPlatform(process.platform),
 ): Partial<WindowConfig> {
-  const platformHideOnClose = options.hideOnClose ?? platform === 'darwin';
+  // Default hide_on_close to true on all platforms so clicking the close
+  // button hides the window to the system tray instead of exiting the process.
+  const platformHideOnClose = options.hideOnClose ?? true;
   const platformHideTitleBar =
     platform === 'darwin' ? options.hideTitleBar : false;
   return {
@@ -481,7 +483,12 @@ export async function mergeConfig(
   if (userAgent.length > 0) {
     tauriConf.pake.user_agent[currentPlatform] = userAgent;
   }
-  tauriConf.pake.system_tray[currentPlatform] = showSystemTray;
+  // Auto-enable the system tray when hide_on_close is active: without a tray
+  // icon the user has no way to restore a hidden window on Windows/Linux.
+  const effectiveHideOnClose =
+    tauriConf.pake.windows[0].hide_on_close ?? true;
+  tauriConf.pake.system_tray[currentPlatform] =
+    showSystemTray || effectiveHideOnClose;
 
   if (platform === 'linux') {
     await mergeLinuxConfig(options, name, tauriConf, linuxBinaryName);
