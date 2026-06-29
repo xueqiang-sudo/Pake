@@ -39,8 +39,7 @@
     updateTheme: () => {},
 
     // App info: Mattermost uses this to detect desktop app version
-    getAppInfo: () =>
-      Promise.resolve({ name: "Dedalix", version: "1.0.0" }),
+    getAppInfo: () => Promise.resolve({ name: "Dedalix", version: "1.0.0" }),
 
     // Dev mode check
     isDev: () => Promise.resolve(false),
