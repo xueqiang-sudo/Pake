@@ -273,9 +273,12 @@ pub fn run_app() {
                                 let _ = window.set_focus();
                             }
                         }
-                        // On macOS, directly hide without minimize to avoid duplicate Dock icons
-                        #[cfg(not(target_os = "macos"))]
-                        let _ = window.minimize();
+                        // Hide the window without minimizing. Calling minimize()
+                        // before hide() causes the window-state plugin to save a
+                        // minimized state, which then re-minimizes the window when
+                        // show() is called from the tray restore handler. On all
+                        // platforms, hide() alone is sufficient to remove the window
+                        // from the screen; show() restores it cleanly.
                         let _ = window.hide();
                     });
                     api.prevent_close();
