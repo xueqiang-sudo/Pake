@@ -139,6 +139,48 @@ pub async fn download_file(app: AppHandle, params: DownloadFileParams) -> Result
     }
 }
 
+// Windows taskbar flash via Win32 API (raw FFI, no extra crate needed)
+#[cfg(target_os = "windows")]
+mod win_flash {
+    use std::os::raw::c_int;
+
+    #[repr(C)]
+    pub struct FLASHWINFO {
+        pub cbSize: u32,
+        pub hwnd: *mut std::ffi::c_void,
+        pub dwFlags: u32,
+        pub uCount: u32,
+        pub dwTimeout: u32,
+    }
+
+    // FLASHW_TRAY = 0x00000002 (flash taskbar button)
+    // FLASHW_TIMERNOFG = 0x0000000C (flash until window gets focus)
+    pub const FLASHW_TRAY: u32 = 0x00000002;
+    pub const FLASHW_TIMERNOFG: u32 = 0x0000000C;
+
+    #[link(name = "user32")]
+    extern "system" {
+        pub fn FlashWindowEx(pFWI: *const FLASHWINFO) -> c_int;
+        pub fn GetForegroundWindow() -> *mut std::ffi::c_void;
+    }
+
+    pub unsafe fn flash_taskbar(hwnd: *mut std::ffi::c_void) {
+        // Only flash if the window is NOT the foreground window
+        let foreground = GetForegroundWindow();
+        if hwnd == foreground {
+            return;
+        }
+        let info = FLASHWINFO {
+            cbSize: std::mem::size_of::<FLASHWINFO>() as u32,
+            hwnd,
+            dwFlags: FLASHW_TRAY | FLASHW_TIMERNOFG,
+            uCount: 5,
+            dwTimeout: 0, // Use default cursor blink rate
+        };
+        FlashWindowEx(&info);
+    }
+}
+
 #[command]
 pub fn send_notification(app: AppHandle, params: NotificationParams) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
@@ -149,6 +191,20 @@ pub fn send_notification(app: AppHandle, params: NotificationParams) -> Result<(
         .icon(&params.icon)
         .show()
         .map_err(|e| format!("Failed to show notification: {}", e))?;
+
+    // Flash the Windows taskbar button when a notification arrives
+    // and the window is not currently in the foreground
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(window) = app.get_webview_window("pake") {
+            if let Ok(hwnd) = window.hwnd() {
+                unsafe {
+                    win_flash::flash_taskbar(hwnd.0 as *mut std::ffi::c_void);
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 

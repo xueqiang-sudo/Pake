@@ -3,6 +3,35 @@ use std::env;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Config, Manager, WebviewWindow};
 
+/// Detect whether the system locale is Chinese.
+/// Used to switch the app display name between "Dedalix" and "允知智构".
+pub fn is_chinese_locale() -> bool {
+    // First try sys-locale (works on macOS/Windows/Linux)
+    if let Some(locale) = sys_locale::get_locale() {
+        return locale.starts_with("zh");
+    }
+    // Fallback to environment variables (Linux)
+    ["LANG", "LC_ALL", "LC_MESSAGES", "LANGUAGE"]
+        .iter()
+        .find_map(|var| env::var(var).ok())
+        .map(|lang| {
+            lang.starts_with("zh")
+                || lang.contains("CN")
+                || lang.contains("TW")
+                || lang.contains("HK")
+        })
+        .unwrap_or(false)
+}
+
+/// Return the localized app name based on system language.
+pub fn get_app_name() -> &'static str {
+    if is_chinese_locale() {
+        "允知智构"
+    } else {
+        "Dedalix"
+    }
+}
+
 pub fn get_pake_config() -> (PakeConfig, Config) {
     #[cfg(feature = "cli-build")]
     let pake_config: PakeConfig = serde_json::from_str(include_str!("../.pake/pake.json"))

@@ -1,11 +1,11 @@
 {
-  "productName": "Weekly",
-  "identifier": "com.pake.weekly",
+  "productName": "Dedalix",
+  "identifier": "com.dedalix.app",
   "version": "3.13.0",
   "app": {
     "withGlobalTauri": true,
     "trayIcon": {
-      "iconPath": "png/weekly_512.png",
+      "iconPath": "icons/icon.png",
       "iconAsTemplate": false,
       "id": "pake-tray"
     },

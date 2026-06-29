@@ -1,8 +1,8 @@
 {
   "bundle": {
-    "icon": ["png/weekly_256.ico", "png/weekly_32.ico"],
+    "icon": ["png/dedalix_256.ico", "png/dedalix_32.ico"],
     "active": true,
-    "resources": ["png/weekly_32.ico"],
+    "resources": ["png/dedalix_32.ico"],
     "targets": ["msi"],
     "windows": {
       "digestAlgorithm": "sha256",

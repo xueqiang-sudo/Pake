@@ -1,12 +1,12 @@
 {
   "windows": [
     {
-      "url": "https://weekly.tw93.fun/en",
+      "url": "https://ai.optibot.cn:8065/",
       "url_type": "web",
       "hide_title_bar": true,
       "fullscreen": false,
-      "width": 1200,
-      "height": 780,
+      "width": 1280,
+      "height": 820,
       "resizable": true,
       "always_on_top": false,
       "dark_mode": false,
@@ -20,8 +20,9 @@
       "start_to_tray": false,
       "force_internal_navigation": false,
       "internal_url_regex": "",
-      "enable_find": false,
-      "new_window": false
+      "enable_find": true,
+      "new_window": false,
+      "ignore_certificate_errors": true
     }
   ],
   "user_agent": {
@@ -30,7 +31,7 @@
     "windows": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
   },
   "system_tray": {
-    "macos": false,
+    "macos": true,
     "linux": true,
     "windows": true
   },

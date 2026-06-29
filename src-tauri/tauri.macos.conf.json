@@ -1,8 +1,12 @@
 {
   "bundle": {
-    "icon": ["icons/weekly.icns"],
+    "icon": ["icons/dedalix.icns"],
     "active": true,
     "targets": ["dmg"],
+    "resources": {
+      "assets/macos/zh-Hans.lproj/": "zh-Hans.lproj/",
+      "assets/macos/en.lproj/": "en.lproj/"
+    },
     "macOS": {
       "signingIdentity": "-",
       "hardenedRuntime": true,

@@ -1,4 +1,5 @@
 use crate::app::window::open_additional_window_safe;
+use crate::util::is_chinese_locale;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -22,10 +23,16 @@ pub fn set_system_tray(
         return Ok(());
     }
 
-    let new_window = MenuItemBuilder::with_id("new_window", "New Window").build(app)?;
-    let hide_app = MenuItemBuilder::with_id("hide_app", "Hide").build(app)?;
-    let show_app = MenuItemBuilder::with_id("show_app", "Show").build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+    let is_zh = is_chinese_locale();
+    let new_window_text = if is_zh { "新窗口" } else { "New Window" };
+    let hide_text = if is_zh { "隐藏" } else { "Hide" };
+    let show_text = if is_zh { "显示" } else { "Show" };
+    let quit_text = if is_zh { "退出" } else { "Quit" };
+
+    let new_window = MenuItemBuilder::with_id("new_window", new_window_text).build(app)?;
+    let hide_app = MenuItemBuilder::with_id("hide_app", hide_text).build(app)?;
+    let show_app = MenuItemBuilder::with_id("show_app", show_text).build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", quit_text).build(app)?;
 
     let menu = if allow_multi_window {
         MenuBuilder::new(app)

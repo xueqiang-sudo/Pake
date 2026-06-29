@@ -1,0 +1,151 @@
+name: Build Dedalix
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.26.2"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Dedalix (${{ matrix.build }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [macos, windows]
+        include:
+          - build: macos
+            os: macos-latest
+            rust: stable
+          - build: windows
+            os: windows-latest
+            rust: stable-x86_64-msvc
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Setup Node.js Environment
+        uses: ./.github/actions/setup-env
+        with:
+          mode: build
+
+      - name: Build CLI
+        run: pnpm run cli:build
+
+      - name: Setup mold linker
+        if: matrix.os == 'ubuntu-latest'
+        uses: rui314/setup-mold@v1
+
+      - name: Prepare macOS signing
+        if: matrix.os == 'macos-latest'
+        env:
+          PAKE_SIGNING_IDENTITY: ${{ secrets.PAKE_SIGNING_IDENTITY }}
+          PAKE_CERTIFICATE_P12: ${{ secrets.PAKE_CERTIFICATE_P12 }}
+          PAKE_CERTIFICATE_PASSWORD: ${{ secrets.PAKE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          SIGNING_IDENTITY="${PAKE_SIGNING_IDENTITY:-}"
+
+          if [ -n "${PAKE_CERTIFICATE_P12:-}" ] && [ -n "${PAKE_CERTIFICATE_PASSWORD:-}" ]; then
+            echo "Importing macOS signing certificate..."
+            KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+            KEYCHAIN_PASSWORD="$(openssl rand -base64 16)"
+
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+            echo "$PAKE_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+            security import "$RUNNER_TEMP/certificate.p12" -P "$PAKE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+            if [ -z "$SIGNING_IDENTITY" ]; then
+              SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/.*"\(Developer ID Application:.*\)".*/\1/p' | head -n 1)"
+            fi
+          else
+            echo "No certificate secret configured, fallback to ad-hoc signing."
+          fi
+
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            SIGNING_IDENTITY="-"
+          fi
+
+          SIGNING_IDENTITY="$SIGNING_IDENTITY" node <<'NODE'
+          const fs = require('fs');
+          const file = 'src-tauri/tauri.macos.conf.json';
+          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+          config.bundle ??= {};
+          config.bundle.macOS ??= {};
+          config.bundle.macOS.signingIdentity = process.env.SIGNING_IDENTITY || '-';
+          fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+
+          echo "Using signing identity: $SIGNING_IDENTITY"
+
+      - name: Build for macOS
+        if: matrix.os == 'macos-latest'
+        timeout-minutes: 25
+        env:
+          TAURI_BUNDLER_DMG_IGNORE_CI: "true"
+        run: |
+          node dist/cli.js "https://ai.optibot.cn:8065/" \
+            --name Dedalix \
+            --hide-title-bar \
+            --width 1280 --height 820 \
+            --icon src-tauri/icons/dedalix.icns \
+            --targets universal --multi-arch
+
+          mkdir -p output/macos
+
+          if [ -f "Dedalix.dmg" ]; then
+            mv "Dedalix.dmg" output/macos/Dedalix.dmg
+          elif [ -n "$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg 2>/dev/null)" ]; then
+            mv src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg output/macos/Dedalix.dmg
+          else
+            echo "Error: No DMG file found"
+            find . -name "*.dmg" -type f
+            exit 1
+          fi
+
+      - name: Build for Windows
+        if: matrix.os == 'windows-latest'
+        timeout-minutes: 20
+        run: |
+          node dist/cli.js "https://ai.optibot.cn:8065/" `
+            --name Dedalix `
+            --width 1280 --height 820 `
+            --icon src-tauri/png/dedalix_256.ico `
+            --targets x64
+
+          New-Item -Path "output\windows" -ItemType Directory -Force
+
+          if (Test-Path "Dedalix.msi") {
+            Move-Item -Path "Dedalix.msi" -Destination "output\windows\Dedalix_x64.msi"
+          } elseif (Test-Path (Get-ChildItem -Path "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName) {
+            $msi = Get-ChildItem -Path "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi" | Select-Object -First 1
+            Move-Item -Path $msi.FullName -Destination "output\windows\Dedalix_x64.msi"
+          } else {
+            Write-Error "No MSI file found"
+            Get-ChildItem -Path "src-tauri\target\" -Recurse -Name "*.msi" | Write-Host
+            exit 1
+          }
+
+          git checkout -- src-tauri/Cargo.lock
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: Dedalix-${{ matrix.build }}
+          path: output/*/*.*
+          retention-days: 7

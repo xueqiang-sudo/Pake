@@ -1,6 +1,7 @@
 use crate::app::config::PakeConfig;
 use crate::util::{
-    check_file_or_append, get_data_dir, get_download_message_with_lang, show_toast, MessageType,
+    check_file_or_append, get_app_name, get_data_dir, get_download_message_with_lang, show_toast,
+    MessageType,
 };
 use std::{
     path::PathBuf,
@@ -203,12 +204,13 @@ fn build_window(
         serde_json::to_string(&window_config).unwrap_or_else(|_| "{}".to_string())
     );
 
-    // Platform-specific title: macOS prefers empty, others fallback to product name
+    // Platform-specific title: macOS prefers empty, others use localized app name
+    let localized_name = get_app_name();
     let effective_title = window_config.title.as_deref().unwrap_or_else(|| {
         if cfg!(target_os = "macos") {
             ""
         } else {
-            tauri_config.product_name.as_deref().unwrap_or("")
+            localized_name
         }
     });
 
