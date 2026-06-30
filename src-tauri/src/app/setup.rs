@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
-    tray::{TrayIconBuilder, TrayIconEvent},
+    tray::{MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
@@ -48,6 +48,7 @@ pub fn set_system_tray(
 
     let mut tray_builder = TrayIconBuilder::new()
         .menu(&menu)
+        .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id().as_ref() {
             "new_window" => {
                 open_additional_window_safe(app);
@@ -80,20 +81,26 @@ pub fn set_system_tray(
             _ => (),
         })
         .on_tray_icon_event(move |tray, event| {
-            if let TrayIconEvent::Click { button, .. } = event {
-                if button == tauri::tray::MouseButton::Left {
-                    if let Some(window) = tray.app_handle().get_webview_window("pake") {
-                        let is_visible = window.is_visible().unwrap_or(false);
-                        if is_visible {
-                            let _ = window.hide();
-                        } else {
-                            let _ = window.unminimize();
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                            #[cfg(target_os = "linux")]
-                            if _init_fullscreen && !window.is_fullscreen().unwrap_or(false) {
-                                let _ = window.set_fullscreen(true);
-                            }
+            // Only respond to mouse-button release (Up) so a single click
+            // doesn't fire the toggle twice (once on Down, once on Up) —
+            // the root cause of the "show then immediately hide" bug on Windows.
+            if let TrayIconEvent::Click {
+                button: tauri::tray::MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                if let Some(window) = tray.app_handle().get_webview_window("pake") {
+                    let is_visible = window.is_visible().unwrap_or(false);
+                    if is_visible {
+                        let _ = window.hide();
+                    } else {
+                        let _ = window.unminimize();
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                        #[cfg(target_os = "linux")]
+                        if _init_fullscreen && !window.is_fullscreen().unwrap_or(false) {
+                            let _ = window.set_fullscreen(true);
                         }
                     }
                 }
